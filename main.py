@@ -190,17 +190,25 @@ def Consistency_domainRange() :
 	points = 0
 	liste_O = []
 	for s, p, o in g.triples((None, None, None)) :
-		for _, _, o2 in g.triples((p or None, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#range'), None)) :
+		boolean = False
+		for _, _, o2 in g.triples((p, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#range'), None)) :
 			nbPossible = nbPossible + 1
+			print(nbPossible)
 			for _, _, o3 in g.triples((s, rdflib.term.URIRef('a'), None)) :
+				pprint.pprint(o2)
+				pprint.pprint(o3)
 				if o2 != o3 :
 					liste_O.append(o3)
 					for _, _, o4 in g.triples((o3, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#equivalentClass'), None)) :
 						liste_O.append(o4)
 					for O in liste_O :
 						for _, _, o5 in g.triples((O, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'), None)) : #On considère le graphe comme complet ici. Transitivité des subclassOf, ... Donc un mauvais schéma peut pottentiellement perdre beaucoup de points
-							if o2 != o5:
-								points = points + 1
+							if o2 == o5:
+								boolean = True
+				else :
+					boolean = True
+			if not boolean :
+				points = points + 1
 		liste_O = []			
 		for _, _, o2 in g.triples((p, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#domain'), None))	:
 			nbPossible = nbPossible + 1
@@ -212,10 +220,15 @@ def Consistency_domainRange() :
 					for O in liste_O :
 						for _, _, o5 in g.triples((O, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'), None)) : #On considère le graphe comme complet ici. Transitivité des subclassOf, ... Donc un mauvais schéma peut pottentiellement perdre beaucoup de points
 							if o2 != o5:
+								pprint.pprint(s)
+								pprint.pprint(o5)
+	
 								points = points + 1
 	if nbPossible == 0 :
 		return 0
 	else :
+		print(points)
+		print(nbPossible)
 		return 0-(points/nbPossible)
 				
 			
@@ -233,8 +246,8 @@ if os.path.exists(args.file)  :
 		with open(args.file) as file:
 			g = Graph()
 			g.parse(file)
-		for s, p, o in g.triples((None, None, None)) :
-			pprint.pprint(p)
+		#for s, p, o in g.triples((None, None, None)) :
+			#pprint.pprint(p)
 		print(Consistency_domainRange())
 			
 	
