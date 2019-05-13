@@ -7,8 +7,7 @@ from rdflib.graph import Graph
 import pprint
 from pathlib import Path
 import urllib
-from SPARQLWrapper import SPARQLWrapper, XML
-
+from urllib.parse import urlparse
 
 def Consistency_subClassesProperties() :
 	liste_S = []
@@ -27,7 +26,7 @@ def Consistency_subClassesProperties() :
 		for x in liste_S :
 			for y in liste_O :
 				if x == y: #On a un objet qui est aussi sujet, avec subClassOf en lien. Pas besoin de vérifier cas x vide
-				#Cas numéro 1 : transitivité subClassOf (doit-on vraiment vérifier ça? Le cas 2 couvre ce cas normalement, en plus simple et plus optimiser... Y réfléchir)
+				#Cas numéro 1 : transitivité subClassOf (doit-on vraiment vérifier ça? Le cas 2 couvre ce cas normalement, en plus simple et plus optimisé... Y réfléchir)
 					for s1, _, _ in g.triples((None, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'), x)) :
 						for _, _, o1 in g.triples((x, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'), None)) :
 							nbPossible = nbPossible + 1
@@ -172,8 +171,44 @@ def Availability_Error() :
 			a = urllib.urlopen(o).getcode()
 			if a >= 400 :
 				points = points + 1
-				
-def Conciseness_duplicatedRules() :  #Oublier!!!
+	
+def Clarity_HumanReadableURIs() : #A finir (comment dire que c'est human readable)
+	nbPossible = 0
+	points = 0
+	for s, p, o in g.triples((None, None, None)) :
+		if isinstance(s, rdflib.term.URIRef) :
+			nbPossible = nbPossible + 1
+			str = urlparse(s)
+			if str.fragment != '' :
+				str = str.fragment
+				#tester str.fragment avec regex
+			else : 
+				str = str.path
+				#regex sur ce qu'il y a après le dernier '/'
+		if isinstance(p, rdflib.term.URIRef) :
+			nbPossible = nbPossible + 1
+			str = urlparse(s)
+			if str.fragment != '' :
+				str = str.fragment
+				#tester str.fragment avec regex
+			else : 
+				str = str.path
+				#regex sur ce qu'il y a après le dernier '/'
+		if isinstance(o, rdflib.term.URIRef) :
+			nbPossible = nbPossible + 1
+			str = urlparse(s)
+			if str.fragment != '' :
+				str = str.fragment
+				#tester str.fragment avec regex
+			else : 
+				str = str.path
+				#regex sur ce qu'il y a après le dernier '/'
+	if nbPossible = 0 :
+		return 1
+	else :
+		return points/nbPossible
+
+def Conciseness_duplicatedRules() :  #Oublier!!! Va falloir réussir à extraire les règles dupliquées, une fois fait le reste est ultra simple
 	nbPossible = 0
 	points = 0
 	liste_spo = []
@@ -184,7 +219,29 @@ def Conciseness_duplicatedRules() :  #Oublier!!!
 		return 0
 	else : 
 		return 0-(points/nbPossible)
-		
+
+def Clarity_HumanReadableDesc() : #Le refaire, juste en choppant les ressources. Le reste reste bon
+	nbPossible = 0
+	points = 0
+	subjectOnly = []
+	for s, _, _ in g.triples((None, None, None)) :
+		isObject = False
+		for _, _, o in g.triples((None, None, None)) :
+			if s == o :
+				isObject = True
+		if not isObject :
+			subjectOnly.append(s)
+	for x in subjectOnly
+		nbPossible = nbPossible + 1
+		for s1, _, _ in g.triples((x, rdflib.term.URIRef('https://www.w3.org/2000/01/rdf-schema#comment'), None)
+			points = points + 1
+		for s1, _, _ in g.triples((x, rdflib.term.URIRef('https://www.w3.org/2000/01/rdf-schema#label'), None)
+			points = points + 1
+	#return points A voir
+
+def Clarity_longTerm() :
+	#Une date dans chaque URI ? du regex
+
 def Consistency_domainRange() :
 	nbPossible = 0
 	points = 0
@@ -235,10 +292,21 @@ def Consistency_domainRange() :
 		print(points)
 		print(nbPossible)
 		return 0-(points/nbPossible)
-				
-			
-		
-		
+
+def Interlinking_owlSameAs() :
+	#savoir comment chopper les ressources uniquement, le reste est simple
+	
+def Interlinking_externalURIs() :
+	
+
+def Interlinking_localLinks() :
+	
+
+def Interlinking_existingVocab() :
+	#ça... je cé pa
+
+	
+	
 #Ceci est le main... Voir comment bien le faire avec python
 parser = argparse.ArgumentParser()
 parser.add_argument('file')
@@ -251,8 +319,12 @@ if os.path.exists(args.file)  :
 		with open(args.file) as file:
 			g = Graph()
 			g.parse(file)
-		#for s, p, o in g.triples((None, None, None)) :
-			#pprint.pprint(p)
-		print(Consistency_domainRange())
-			
-	
+		for s, p, o in g.triples((None, None, None)) :
+			pprint.pprint(s)
+			pprint.pprint(p)
+			pprint.pprint(o)
+		Conciseness_longURI()
+		o = urlparse("http://www.iro.umontreal.ca/~lapalme/sujet1")
+		pprint.pprint(o)
+		
+#Note : Réduire au max les répétitions avec des fonctions, tt ça. Code plus propre
