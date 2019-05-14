@@ -219,25 +219,30 @@ def Conciseness_duplicatedRules() :  #Oublier!!! Va falloir réussir à extraire
 		return 0
 	else : 
 		return 0-(points/nbPossible)
-
-def Clarity_HumanReadableDesc() : #Le refaire, juste en choppant les ressources. Le reste reste bon
+	
+	
+def Clarity_humanDesc() : #Revoir le return
 	nbPossible = 0
 	points = 0
-	subjectOnly = []
-	for s, _, _ in g.triples((None, None, None)) :
-		isObject = False
-		for _, _, o in g.triples((None, None, None)) :
-			if s == o :
-				isObject = True
-		if not isObject :
-			subjectOnly.append(s)
-	for x in subjectOnly
+	liste_URIs = []
+	for s, p, o in g.triples((None, None, None)) :
+		if isinstance(s, rdflib.term.URIRef) :
+			liste_URIs.append(s)
+		if isinstance(p, rdflib.term.URIRef) :
+			liste_URIs.append(p)
+		if isinstance(o, rdflib.term.URIRef) :
+			liste_URIs.append(o)
+	for elt in liste_URIs :
+		passe = False
 		nbPossible = nbPossible + 1
-		for s1, _, _ in g.triples((x, rdflib.term.URIRef('https://www.w3.org/2000/01/rdf-schema#comment'), None)
+		for s2, _, _ in g.triples((elt, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#label'), None)) :
+			passe = True
+		for s2, _, _ in g.triples((elt, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#comment'), None)) :
+			passe = True
+		if passe :
 			points = points + 1
-		for s1, _, _ in g.triples((x, rdflib.term.URIRef('https://www.w3.org/2000/01/rdf-schema#label'), None)
-			points = points + 1
-	#return points A voir
+
+	return points
 
 def Clarity_longTerm() :
 	#Une date dans chaque URI ? du regex
