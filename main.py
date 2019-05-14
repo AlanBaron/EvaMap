@@ -145,8 +145,6 @@ def Conciseness_longURI() :
 			nbPossible = nbPossible + 1
 			if len(p) >= 80 :
 				points = points + 1
-	print(nbPossible)
-	print(points)
 	if nbPossible == 0:
 		return 0
 	else :
@@ -203,7 +201,7 @@ def Clarity_HumanReadableURIs() : #A finir (comment dire que c'est human readabl
 			else : 
 				str = str.path
 				#regex sur ce qu'il y a après le dernier '/'
-	if nbPossible = 0 :
+	if nbPossible == 0 :
 		return 1
 	else :
 		return points/nbPossible
@@ -245,6 +243,7 @@ def Clarity_humanDesc() : #Revoir le return
 	return points
 
 def Clarity_longTerm() :
+	return 0
 	#Une date dans chaque URI ? du regex
 
 def Consistency_domainRange() :
@@ -299,15 +298,93 @@ def Consistency_domainRange() :
 		return 0-(points/nbPossible)
 
 def Interlinking_owlSameAs() :
-	#savoir comment chopper les ressources uniquement, le reste est simple
+	nbPossible = 0 
+	points = 0
+	liste_URIs = []
+	for s, p, o in g.triples((None, None, None)) :
+		if isinstance(s, rdflib.term.URIRef) :
+			liste_URIs.append(s)
+		if isinstance(o, rdflib.term.URIRef) :
+			liste_URIs.append(o)
+	for elt in liste_URIs :
+		nbPossible = nbPossible + 1
+		for _, _, o2 in g.triples((elt, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#sameAs'), None)) :
+			points = points + 1
+			if o2 in liste_URIs :
+				liste_URIs.remove(o2)
+		for s2, _, _ in g.triples((None, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#sameAs'), elt)) :
+			points = points + 1
+			if s2 in liste_URIs :
+				liste_URIs.remove(s2)
+	if nbPossible == 0 :
+		return 0
+	else :
+		return points/nbPossible
+		
 	
 def Interlinking_externalURIs() :
+	return 0
 	
 
-def Interlinking_localLinks() :
+def Interlinking_localLinks() : #Retrourne en quelque sorte le nombre d'îlots
+	liste_value = []
+	i = 1
+	val_S = 0
+	val_O = 0
+	for s, _, o in g.triples((None, None, None)) :
+		index_S = 0
+		index_O = 0
+		parc_S = False
+		parc_O = False
+		for elt in liste_value :
+			if s in elt :
+				val_S = elt[1]
+				parc_S = True
+				index_S = liste_value.index(elt)
+			if o in elt :
+				val_O = elt[1]
+				parc_O = True
+				index_S = liste_value.index(elt)
+			if parc_S and parc_O :
+				if val_S < val_O :
+					liste_value[index_O][1] = val_S
+					liste_value = Interlinking_localLinkNewCalc(liste_value, o, val_S)
+				elif val_S > val_O :
+					liste_value[index_S][1] = val_O
+					liste_value = Interlinking_localLinkNewCalc(liste_value, s, val_O)
+				break
+		if parc_S and not parc_O :
+			liste_value.append([o, val_S])
+		elif parc_O and not parc_S :
+			liste_value.append([s, val_O])
+		elif not parc_O and not parc_S :
+			liste_value.append([s, i])
+			liste_value.append([o, i])
+			i = i + 1
+	nb = []
+	for elt in liste_value :
+		if elt[1] not in nb :
+			nb.append(elt[1])
+	return len(nb)
 	
 
+def Interlinking_localLinkNewCalc(liste, ref, value) :
+	for _, _, o in g.triples((ref, None, None)) :
+		for elt in liste :
+			if o in elt :
+				if elt[1] > value :
+					elt[1] = value
+					Interlinking_localLinkNewCalc(liste, o, value)
+	for s, _, _ in g.triples((None, None, ref)) :
+		for elt in liste :
+			if s in elt :
+				if elt[1] > value :
+					elt[1] = value
+					Interlinking_localLinkNewCalc(liste, s, value)
+	return liste
+	
 def Interlinking_existingVocab() :
+	return 0
 	#ça... je cé pa
 
 	
@@ -324,12 +401,10 @@ if os.path.exists(args.file)  :
 		with open(args.file) as file:
 			g = Graph()
 			g.parse(file)
-		for s, p, o in g.triples((None, None, None)) :
-			pprint.pprint(s)
-			pprint.pprint(p)
-			pprint.pprint(o)
-		Conciseness_longURI()
-		o = urlparse("http://www.iro.umontreal.ca/~lapalme/sujet1")
-		pprint.pprint(o)
+		#for s, p, o in g.triples((None, None, None)) :
+		#	pprint.pprint(s)
+		#	pprint.pprint(p)
+		#	pprint.pprint(o)
+		print(Interlinking_localLinks())
 		
 #Note : Réduire au max les répétitions avec des fonctions, tt ça. Code plus propre
