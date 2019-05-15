@@ -3,11 +3,14 @@ import os
 import argparse
 import rdflib
 import pyaml
+import yaml
+import re
 from rdflib.graph import Graph
 import pprint
 from pathlib import Path
 import urllib
 from urllib.parse import urlparse
+from urllib.parse import urlsplit
 
 def Consistency_subClassesProperties() :
 	liste_S = []
@@ -179,32 +182,44 @@ def Clarity_HumanReadableURIs() : #A finir (comment dire que c'est human readabl
 			str = urlparse(s)
 			if str.fragment != '' :
 				str = str.fragment
-				#tester str.fragment avec regex
+				test_HumanReadable(str)
 			else : 
 				str = str.path
-				#regex sur ce qu'il y a après le dernier '/'
+				str = str.split("/")[-1]
+				test_HumanReadable(str)
 		if isinstance(p, rdflib.term.URIRef) :
 			nbPossible = nbPossible + 1
-			str = urlparse(s)
+			str = urlparse(p)
 			if str.fragment != '' :
 				str = str.fragment
-				#tester str.fragment avec regex
+				test_HumanReadable(str)
 			else : 
 				str = str.path
-				#regex sur ce qu'il y a après le dernier '/'
+				str = str.split("/")[-1]
+				test_HumanReadable(str)
 		if isinstance(o, rdflib.term.URIRef) :
 			nbPossible = nbPossible + 1
-			str = urlparse(s)
+			str = urlparse(o)
 			if str.fragment != '' :
 				str = str.fragment
-				#tester str.fragment avec regex
+				test_HumanReadable(str)
 			else : 
 				str = str.path
-				#regex sur ce qu'il y a après le dernier '/'
+				str = str.split("/")[-1]
+				test_HumanReadable(str)
 	if nbPossible == 0 :
 		return 1
 	else :
 		return points/nbPossible
+		
+def test_HumanReadable(str) :
+	print(str)
+	str2 = re.match('[A-Z][A-Z][A-Z]', str)
+	if str2 is not None :
+		return str2
+	str2 = re.match('[0-9]+[A-Za-z0-9\-\_]+$', str)
+	print(str2)
+	return str2
 
 def Conciseness_duplicatedRules() :  #Oublier!!! Va falloir réussir à extraire les règles dupliquées, une fois fait le reste est ultra simple
 	nbPossible = 0
@@ -243,6 +258,18 @@ def Clarity_humanDesc() : #Revoir le return
 	return points
 
 def Clarity_longTerm() :
+	nbPossible = 0
+	points = 0
+	liste_URIs = []
+	for s, p, o in g.triples((None, None, None)) :
+		if isinstance(s, rdflib.term.URIRef) :
+			liste_URIs.append(s)
+		if isinstance(o, rdflib.term.URIRef) :
+			liste_URIs.append(o)
+	for elt in liste_URIs :
+		nbPossible = nbPossible + 1
+		#regex sur parse elt if date then points + 1 sinon rien. Voir si paramètre, ou url, tout ça... Voir selon le format des dates, le regex 
+		
 	return 0
 	#Une date dans chaque URI ? du regex
 
@@ -368,7 +395,7 @@ def Interlinking_localLinks() : #Retrourne en quelque sorte le nombre d'îlots
 	return len(nb)
 	
 
-def Interlinking_localLinkNewCalc(liste, ref, value) :
+def Interlinking_localLinkNewCalc(liste, ref, value) : #Utilisé pour la méthode précédente uniquement
 	for _, _, o in g.triples((ref, None, None)) :
 		for elt in liste :
 			if o in elt :
@@ -391,20 +418,65 @@ def Interlinking_existingVocab() :
 	
 #Ceci est le main... Voir comment bien le faire avec python
 parser = argparse.ArgumentParser()
-parser.add_argument('file')
+parser.add_argument('file1')
+parser.add_argument('file2')
 args = parser.parse_args()
+
 #On regarde si le fichier existe
-if os.path.exists(args.file)  :
+if os.path.exists(args.file1) and os.path.exists(args.file2) :
 	print("Files exist")
 #On regarde si le fichier est un .rdf
-	if Path(args.file).suffix == '.rdf' :
+	if Path(args.file1).suffix == '.rdf' :
+		with open(args.file1) as file:
+			g = Graph()
+			g.parse(file)
+		if Path(args.file2).suffix == '.yml' : #Penser au JSON pour après !!!
+			with open(args.file2) as file2 :
+				mapping = yaml.load(file2, Loader=yaml.FullLoader)
+				liste_map = []
+				for name in mapping["mappings"] :
+					for predicateobject in mapping["mappings"][name]["predicateobjects"] :
+						if len(predicateobject) == 2 :
+							if re.search('(http://)|(https://)', predicateobject[1]) is not None :
+								liste_map.append([rdflib.term.URIRef(mapping["mappings"][name]["subject"]), rdflib.term.URIRef(predicateobject[0]), rdflib.term.URIRef(predicateobject[1])])
+							else : 
+								liste_map.append([rdflib.term.URIRef(mapping["mappings"][name]["subject"]), rdflib.term.URIRef(predicateobject[0]), rdflib.term.Literal(predicateobject[1])])
+						elif len(predicateobject) == 3 :
+							if len(predicateobject[2].split('~')) == 2 :
+								if predicateobject[2].split('~')[1] == 'lang' :
+									liste_map.append([rdflib.term.URIRef(mapping["mappings"][name]["subject"]), rdflib.term.URIRef(predicateobject[0]), rdflib.term.Literal(predicateobject[1], lang = predicateobject[2].split('~')[0])]) 
+								else :
+									liste_map.append([rdflib.term.URIRef(mapping["mappings"][name]["subject"]), rdflib.term.URIRef(predicateobject[0]), rdflib.term.Literal(predicateobject[1], datatype = predicateobject[2])])
+							else :
+								liste_map.append([rdflib.term.URIRef(mapping["mappings"][name]["subject"]), rdflib.term.URIRef(predicateobject[0]), rdflib.term.Literal(predicateobject[1], datatype = predicateobject[2])])
+							
+	elif Path(args.file2).suffix == '.rdf' :
 		with open(args.file) as file:
 			g = Graph()
 			g.parse(file)
-		#for s, p, o in g.triples((None, None, None)) :
-		#	pprint.pprint(s)
-		#	pprint.pprint(p)
-		#	pprint.pprint(o)
-		print(Interlinking_localLinks())
+		if Path(args.file1).suffix == '.yml' : #Penser au JSON pour après !!!
+			with open(args.file2) as file2 :
+				mapping = yaml.load(file2, Loader=yaml.FullLoader)
+				liste_map = []
+				for name in mapping["mappings"] :
+					for predicateobject in mapping["mappings"][name]["predicateobjects"] :
+						if len(predicateobject) == 2 :
+							if re.search('(http://)|(https://)', predicateobject[1]) is not None :
+								liste_map.append([rdflib.term.URIRef(mapping["mappings"][name]["subject"]), rdflib.term.URIRef(predicateobject[0]), rdflib.term.URIRef(predicateobject[1])])
+							else : 
+								liste_map.append([rdflib.term.URIRef(mapping["mappings"][name]["subject"]), rdflib.term.URIRef(predicateobject[0]), rdflib.term.Literal(predicateobject[1])])
+						elif len(predicateobject) == 3 :
+							if len(predicateobject[2].split('~')) == 2 :
+								if predicateobject[2].split('~')[1] == 'lang' :
+									liste_map.append([rdflib.term.URIRef(mapping["mappings"][name]["subject"]), rdflib.term.URIRef(predicateobject[0]), rdflib.term.Literal(predicateobject[1], lang = predicateobject[2].split('~')[0])]) 
+								else :
+									liste_map.append([rdflib.term.URIRef(mapping["mappings"][name]["subject"]), rdflib.term.URIRef(predicateobject[0]), rdflib.term.Literal(predicateobject[1], datatype = predicateobject[2])])
+							else :
+								liste_map.append([rdflib.term.URIRef(mapping["mappings"][name]["subject"]), rdflib.term.URIRef(predicateobject[0]), rdflib.term.Literal(predicateobject[1], datatype = predicateobject[2])])
+	pprint.pprint(liste_map)
+	#for s, p, o in g.triples((rdflib.term.URIRef('http://dbpedia.org/ontology/deathDate'), None, None)) :
+	#		pprint.pprint(p)
+		#	print(s.split("/")[-1])
+	#print(Interlinking_localLinks())
 		
 #Note : Réduire au max les répétitions avec des fonctions, tt ça. Code plus propre
