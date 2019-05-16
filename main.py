@@ -13,121 +13,84 @@ from urllib.parse import urlparse
 from urllib.parse import urlsplit
 import requests
 
-def Consistency_subClassesProperties() :
-	liste_S = []
-	liste_O = []
-	liste_Pg = []
-	liste_Pd = []
+def Consistency_subClassesProperties() : #Même remarque que la suivante. Fonctionne ----------------------------
+	set_SO = set()
+	set_P = set()
 	points = 0
 	nbPossible = 0
-	for s, _, o in g_map.triples((None, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'), None)) : #Si jamais y'a pas de subClassOf, on entre pas ici
-		liste_S.append(s)
-		liste_O.append(o)
-	for sp, _, so in g_map.triples((None, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subPropertyOf'), None)) :
-		liste_Pg.append(sp)
-		liste_Pd.append(so)
-	if len(liste_S) != 0 :	
-		for x in liste_S :
-			for y in liste_O :
-				if x == y: #On a un objet qui est aussi sujet, avec subClassOf en lien. Pas besoin de vérifier cas x vide
-				#Cas numéro 1 : transitivité subClassOf (doit-on vraiment vérifier ça? Le cas 2 couvre ce cas normalement, en plus simple et plus optimisé... Y réfléchir)
-					for s1, _, _ in g_map.triples((None, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'), x)) :
-						for _, _, o1 in g_map.triples((x, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'), None)) :
-							nbPossible = nbPossible + 1
-							for _, p1, _ in g_map.triples((s1, None, o1)) :    
-								if p1 == rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf') :
-									points = points + 1
-				#Cas numéro 2 : A a B, B subClassOf C, A a C
-				for s2, p2, _ in g_map.triples((None, None, x)) :
-					for s3, _, _ in g_map.triples((s2, p2, y)) :
-						nbPossible = nbPossible + 1;
-						if s3 is not None :
-							points = points + 1
-	#Ici les subPropertyOf						
-	if len(liste_Pg) != 0:
-		for i in range(0,len(liste_Pg)-1) :
-			for s4, _, o4 in g_map.triples((None, liste_Pg[i], None)) :
-				for s5, _, _ in g_map.triples((s4, liste_Pd[i], o4)) :
-					nbPossible = nbPossible + 1
-					if s5 is not None :
-						points = points + 1
+	for s, p, o in g_map.triples((None, None, None)) :
+		set_SO.add(s)
+		set_SO.add(o)
+		set_P.add(p)
+	for subobj in set_SO :
+		for _, _, o2 in g_onto.triples((None, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'), subobj)) :
+			if not isinstance(o2, rdflib.term.BNode) :
+				nbPossible = nbPossible + 1
+			if (None, None, o2) in g_map and not isinstance(o2, rdflib.term.BNode):
+				points = points + 1
+			elif (o2, None, None) in g_map and not isinstance(o2, rdflib.term.BNode):
+				points = points + 1
+	for pred in set_P :	
+		for _, _, o3 in g_onto.triples((None, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subPropertyOf'), pred)) :
+			if not isinstance(o3, rdflib.term.BNode) :
+				nbPossible = nbPossible + 1
+			if (None, o3, None) in g_map and not isinstance(o3, rdflib.term.BNode) :
+				points = points + 1					
+	if nbPossible == 0 :
+		return 0
+	else :
+		return points/nbPossible
+		
+def Consistency_equivalentClassesProperties() : #Ici on considère que si une classe equivalente est dans notre mapping, alors elle est correctement utilisée. Corrigé
+	set_SO = set()
+	set_P = set()
+	points = 0
+	nbPossible = 0
+	for s, p, o in g_map.triples((None, None, None)) :
+		set_SO.add(s)
+		set_SO.add(o)
+		set_P.add(p)
+	for subobj in set_SO :
+		for _, _, o2 in g_onto.triples((subobj, rdflib.term.URIRef('http://www.w3.org/2002/07/owl#equivalentClass'), None)) :
+			if not isinstance(o2, rdflib.term.BNode) :
+				nbPossible = nbPossible + 1
+			if (None, None, o2) in g_map and not isinstance(o2, rdflib.term.BNode):
+				points = points + 1
+			elif (o2, None, None) in g_map and not isinstance(o2, rdflib.term.BNode):
+				points = points + 1
+	for pred in set_P :	
+		for _, _, o3 in g_onto.triples((pred, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#equivalentProperty'), None)) :
+			nbPossible = nbPossible + 1
+			if (None, None, o3) in g_map and not isinstance(o3, rdflib.term.BNode) :
+				points = points + 1
+			elif (o3, None, None) in g_map and not isinstance(o3, rdflib.term.BNode):
+				points = points + 1
 						
 	if nbPossible == 0 :
 		return 0
 	else :
 		return points/nbPossible
 		
-def Consistency_equivalentClassesProperties() :
-	liste_S = []
-	liste_O = []
-	liste_Pg = []
-	liste_Pd = []
+def Consistency_disjointWith() : #Corrigé, devrait fonctionner -----------------------------------------------
 	points = 0
 	nbPossible = 0
-	for s, _, o in g_link.triples((None, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#equivalentClass'), None)) :
-		liste_S.append(s)
-		liste_O.append(o)
-	for sp, _, so in g_link.triples((None, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#equivalentProperty'), None)) :
-		liste_Pg.append(sp)
-		liste_Pd.append(so)
-	if len(liste_S) != 0 :	
-		for x in liste_S :
-			for y in liste_O :
-				for s2, p2, _ in g_link.triples((None, None, x)) :
-					for s3, _, _ in g_link.triples((s2, p2, y)) :
-						nbPossible = nbPossible + 1;
-						if s3 is not None :
-							points = points + 1
-	if len(liste_Pg) != 0:
-		for i in range(0,len(liste_Pg)-1) :
-			for s4, _, o4 in g_link.triples((None, Pg[i], None)) :
-				for s5, _, _ in g_link.triples((s4, Pd[i], o4)) :
-					nbPossible = nbPossible + 1
-					if s5 is not None :
+	for s, _, o in g_map.triples((None, None, None)) :
+		nbPossible = nbPossible + 1
+		for _, _, o1 in g_onto.triples((s, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#disjointWith'), None)) :
+			if g_onto.triples((o, (rdflib.term.URIRef('a')|rdflib.term.URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')), o1)) is not None :
+				points = points + 1
+			else :
+				for s1, _, _ in g_onto.triples((None, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf') ,o)):
+					if g_onto.triples((s1, (rdflib.term.URIRef('a')|rdflib.term.URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')), o1)) is not None :
 						points = points + 1
-						
-	if nbPossible == 0 :
-		return 0
-	else :
-		return points/nbPossible
+		for _, _, o1 in g_onto.triples((o, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#disjointWith'), None)) :
+			if g_onto.triples((s, (rdflib.term.URIRef('a')|rdflib.term.URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')), o1)) is not None :
+				points = points + 1
+			else :
+				for s1, _, _ in g_onto.triples((None, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf') ,s)):
+					if g_onto.triples((s1, (rdflib.term.URIRef('a')|rdflib.term.URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')), o1)) is not None :
+						points = points + 1
 		
-def Consistency_disjointWith() :
-	liste_S = []
-	liste_O = []
-	points = 0
-	nbPossible = 0
-	for s, _, o in g_link.triples((None, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#disjointWith'), None)) :
-		liste_S.append(s)
-		liste_O.append(o)
-	if len(liste_S) != 0 :	
-		for x in liste_S :
-			for y in liste_O :
-				for s1, _, _ in g_link.triples((None,  rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'), x)) :
-					for _, p2, _ in g_link.triples((s1, None, y)) :
-						nbPossible = nbPossible + 1
-						if p2 is not None and p2 != rdflib.term.URIRef('https://www.w3.org/2002/07/owl#disjointWith') :
-							points = points + 1
-					for _, p7, _ in g_link.triples((y, None, s1)) :
-						nbPossible = nbPossible + 1
-						if p7 is not None and p7 != rdflib.term.URIRef('https://www.w3.org/2002/07/owl#disjointWith') :
-							points = points + 1
-				for _, p3, _ in g_link.triples((x, None, y)):
-					nbPossible = nbPossible + 1
-					if p3 is not None and p3 != rdflib.term.URIRef('https://www.w3.org/2002/07/owl#disjointWith') :
-						points = points + 1
-				for _, p4, _ in g_link.triples((y, None, x)):
-					nbPossible = nbPossible + 1
-					if p4 is not None and p4 != rdflib.term.URIRef('https://www.w3.org/2002/07/owl#disjointWith') :
-						points = points + 1
-				for s5, _, _ in g_link.triples((None, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'), y)) :
-					for _, p6, _ in g_link.triples((s5, None, x)) :
-						nbPossible = nbPossible + 1
-						if p6 is not None and p6 != rdflib.term.URIRef('https://www.w3.org/2002/07/owl#disjointWith') :
-							points = points + 1
-					for _, p8, _ in g_link.triples((x, None, s5)) :
-						nbPossible = nbPossible + 1
-						if p8 is not None and p8 != rdflib.term.URIRef('https://www.w3.org/2002/07/owl#disjointWith') :
-							points = points + 1
 	if nbPossible == 0 :
 		return 0
 	else :
@@ -180,7 +143,7 @@ def Availability_Error() : #Corrigé, opérationelle, et optimisé au mieux ----
 def Clarity_HumanReadableURIs() : #A finir (comment dire que c'est human readable)
 	nbPossible = 0
 	points = 0
-	for s, p, o in g_link.triples((None, None, None)) :
+	for s, p, o in g_link.map((None, None, None)) :
 		if isinstance(s, rdflib.term.URIRef) :
 			nbPossible = nbPossible + 1
 			str = urlparse(s)
@@ -258,7 +221,7 @@ def Clarity_longTerm() : #Complété, corrigé et fonctionnel. Revoir le return 
 	for s, p, o in g_map.triples((None, None, None)) :
 		if isinstance(s, rdflib.term.URIRef) :
 			set_URIs.add(s)
-		if isinstance(p, rdflib.term.URIRef) :
+		if isinstance(p, rdflib.term.URIRef) and p != rdflib.term.URIRef('a') :
 			set_URIs.add(p)
 		if isinstance(o, rdflib.term.URIRef) :
 			set_URIs.add(o)
@@ -276,76 +239,81 @@ def Clarity_longTerm() : #Complété, corrigé et fonctionnel. Revoir le return 
 	else :
 		return points/nbPossible
 
-def Consistency_domainRange() :
+def Consistency_domainRange() : #Il est bon de noter ici qu'un mapping avec peu de lien externes peut potentiellement donner une mauvaise note, sans pour autant être mauvais
+#Cas des littéraux avec datatype non pris en compte! A voir si y'a le temps
 	nbPossible = 0
 	points = 0
 	liste_O = []
-	for s, p, o in g_link.triples((None, None, None)) :
+	for s, p, o in g_map.triples((None, None,None)) :
+		nbPossible = nbPossible + 2
 		boolean = False
-		for _, _, o2 in g_link.triples((p, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#range'), None)) :
-			nbPossible = nbPossible + 1
-			print(nbPossible)
-			for _, _, o3 in g_link.triples((s, rdflib.term.URIRef('a'), None)) :
-				pprint.pprint(o2)
-				pprint.pprint(o3)
-				if o2 != o3 :
-					liste_O.append(o3)
-					for _, _, o4 in g_link.triples((o3, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#equivalentClass'), None)) :
-						liste_O.append(o4)
-					for O in liste_O :
-						for _, _, o5 in g_link.triples((O, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'), None)) : #On considère le graphe comme complet ici. Transitivité des subclassOf, ... Donc un mauvais schéma peut pottentiellement perdre beaucoup de points
-							if o2 == o5:
+		if p == rdflib.term.URIRef('a') :
+			p = rdflib.term.URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')
+		for _, _, o2 in g_link.triples((p, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#domain'), None)) : #Pour toutes les valeurs domain de p
+			for _, _, o3 in g_link.triples((s, (rdflib.term.URIRef('a')|rdflib.term.URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')), None)) : #On récupère le type du sujet
+				if o2 != o3 and o2 != rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#Resource') : #Si le domaine de p est différent du type du sujet et que, cas général, le domaine de p n'est pas une ressource
+					liste_O.append(o3)	#On stock le type du sujet
+					for _, _, o4 in g_link.triples((s, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#equivalentClass'), None)): #Pour tous les équivalents au sujet
+						for _, _, o6 in g_link.triples((s, (rdflib.term.URIRef('a')|rdflib.term.URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')), None)) : #On récupère les type des sujets equivalents
+							liste_O.append(o4) #On stock ces types aussi
+					for O in liste_O : #Pour l'ensemble des types récupérés
+						for _, _, o5 in g_link.triples((O, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'), None)) : #on regarde pour toutes les sous-classes des types (équivalents ou non) de notre sujet
+							if o2 == o5: #Si ils sont équivalents au domaine
 								boolean = True
 				else :
 					boolean = True
-			if not boolean :
-				points = points + 1
-		liste_O = []			
-		for _, _, o2 in g_link.triples((p, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#domain'), None))	:
-			nbPossible = nbPossible + 1
-			print(nbPossible)
-			for _, _, o3 in g_link.triples((s, rdflib.term.URIRef('a'), None)) :
-				pprint.pprint(o2)
-				pprint.pprint(o3)
-				if o2 != o3 :
-					liste_O.append(o3)
-					for _, _, o4 in g_link.triples((o3, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#equivalentClass'), None)) :
-						liste_O.append(o4)
-					for O in liste_O :
-						for _, _, o5 in g_link.triples((O, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'), None)) : #On considère le graphe comme complet ici. Transitivité des subclassOf, ... Donc un mauvais schéma peut pottentiellement perdre beaucoup de points
-							if o2 == o5:
-								boolean = True
-				else :
+		if boolean :
+			points = points + 1
+		liste_O = []
+		boolean = False
+		for _, _, o2 in g_link.triples((p, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#range'), None))	:
+			if o2 == rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#Resource') :
+				boolean = True
+			if o2 == rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#Literal') :
+				if isinstance(o, rdflib.term.Literal) :
 					boolean = True
-			if not boolean :
-				points = points + 1
+			if isinstance(o, rdflib.term.URIRef) :
+				for _, _, o3 in g_link.triples((o, (rdflib.term.URIRef('a')|rdflib.term.URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')), None)) : #On récupère le type du sujet
+					if o2 != o3 : #Si le domaine de p est différent du type du sujet et que, cas général, le domaine de p n'est pas une ressource
+						liste_O.append(o3)	#On stock le type du sujet
+						for _, _, o4 in g_link.triples((s, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#equivalentClass'), None)): #Pour tous les équivalents au sujet
+							for _, _, o6 in g_link.triples((s, (rdflib.term.URIRef('a')|rdflib.term.URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')), None)) : #On récupère les type des sujets equivalents
+								liste_O.append(o4) #On stock ces types aussi
+						for O in liste_O : #Pour l'ensemble des types récupérés
+							for _, _, o5 in g_link.triples((O, rdflib.term.URIRef('http://www.w3.org/2000/01/rdf-schema#subClassOf'), None)) : #on regarde pour toutes les sous-classes des types (équivalents ou non) de notre sujet
+								if o2 == o5: #Si ils sont équivalents au domaine
+									boolean = True
+					else :
+						boolean = True
+		if boolean :
+			points = points + 1
 				
 	if nbPossible == 0 :
 		return 0
 	else :
 		print(points)
 		print(nbPossible)
-		return 0-(points/nbPossible)
+		return 0-((nbPossible - points)/nbPossible)
 
-def Interlinking_owlSameAs() :
+def Interlinking_owlSameAs() : #Corrigé, devrait être opérationnel. Ici, on regarde pour chaque URI si cette dernière à un owl:sameAs existant. --------------------------------------
 	nbPossible = 0 
 	points = 0
-	liste_URIs = []
-	for s, p, o in g_link.triples((None, None, None)) :
+	set_URIs = set()
+	for s, p, o in g_map.triples((None, None, None)) :
 		if isinstance(s, rdflib.term.URIRef) :
-			liste_URIs.append(s)
+			set_URIs.add(s)
 		if isinstance(o, rdflib.term.URIRef) :
-			liste_URIs.append(o)
-	for elt in liste_URIs :
+			set_URIs.add(o)
+		if isinstance(p, rdflib.term.URIRef) and p != rdflib.term.URIRef('a') :
+			set_URIs.add(p)
+	for elt in set_URIs :
 		nbPossible = nbPossible + 1
-		for _, _, o2 in g_link.triples((elt, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#sameAs'), None)) :
-			points = points + 1
-			if o2 in liste_URIs :
-				liste_URIs.remove(o2)
-		for s2, _, _ in g_link.triples((None, rdflib.term.URIRef('https://www.w3.org/2002/07/owl#sameAs'), elt)) :
-			points = points + 1
-			if s2 in liste_URIs :
-				liste_URIs.remove(s2)
+		for _, _, o2 in g_link.triples((elt, rdflib.term.URIRef('http://www.w3.org/2002/07/owl#sameAs'), None)) :
+			if o2 != elt :
+				points = points + 1
+		for s2, _, _ in g_link.triples((None, rdflib.term.URIRef('http://www.w3.org/2002/07/owl#sameAs'), elt)) :
+			if s2 != elt :
+				points = points + 1
 	if nbPossible == 0 :
 		return 0
 	else :
@@ -477,10 +445,11 @@ if __name__ == '__main__':
 		for triple in liste_map :
 			g_link.add(triple)
 			g_map.add(triple)
-		#for s, p, o in g_map.triples((None, None, None)) :
+		#for s, p, o in g_onto.triples((rdflib.term.URIRef('http://schema.org/Person'), rdflib.term.URIRef('http://www.w3.org/2002/07/owl#equivalentClass'), None)) :
+		#		print('---------------------')
+		#		pprint.pprint(p)
 		#		pprint.pprint(o)
-		print(Conciseness_duplicatedRules())
-		
+		print(Consistency_subClassesProperties())
 	else : 
 		print('Les fichiers n\'existent pas')
 	#Note : Réduire au max les répétitions avec des fonctions, tt ça. Code plus propre
