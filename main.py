@@ -10,8 +10,8 @@ import pprint
 from pathlib import Path
 import urllib
 from urllib.parse import urlparse
-from urllib.parse import urlsplit
 import requests
+import json
 
 def Consistency_subClassesProperties() : #Même remarque que la suivante. Fonctionne ----------------------------
 	set_SO = set()
@@ -123,11 +123,26 @@ def Availability_Error() : #Corrigé, opérationelle, et optimisé au mieux ----
 	set_URIs = set()
 	for s, p, o in g_map.triples((None, None, None)) :
 		if isinstance(s, rdflib.term.URIRef) :
-			set_URIs.add(str(s).split('$')[0])
+			str1 = str(s)
+			str2 = str(s)
+			str1 = str1.split('$')[0].split('#')[0]
+			if str1 == str2 :
+				str1 = str1.rsplit('/', 1)[0] + '/'
+			set_URIs.add(str1)
 		if isinstance(p, rdflib.term.URIRef) and p != rdflib.term.URIRef('a') :
-			set_URIs.add(str(p).split('$')[0])
+			str1 = str(p)
+			str2 = str(p)
+			str1 = str1.split('$')[0].split('#')[0]
+			if str1 == str2 :
+				str1 = str1.rsplit('/', 1)[0] + '/'
+			set_URIs.add(str1)
 		if isinstance(o, rdflib.term.URIRef) :
-			set_URIs.add(str(o).split('$')[0])			
+			str1 = str(o)
+			str2 = str(o)
+			str1 = str1.split('$')[0].split('#')[0]
+			if str1 == str2 :
+				str1 = str1.rsplit('/', 1)[0] + '/'
+			set_URIs.add(str1)	
 	nbPossible = len(set_URIs)
 	for elt in set_URIs :
 		a = requests.get(elt)
@@ -140,57 +155,69 @@ def Availability_Error() : #Corrigé, opérationelle, et optimisé au mieux ----
 	else :
 		return 0-(points/nbPossible)
 	
-def Clarity_HumanReadableURIs() : #A finir (comment dire que c'est human readable)
+def Clarity_HumanReadableURIs() : #Complet --------------------------------------------------------------------------------
 	nbPossible = 0
 	points = 0
-	for s, p, o in g_link.map((None, None, None)) :
+	for s, p, o in g_map.triples((None, None, None)) :
 		if isinstance(s, rdflib.term.URIRef) :
 			nbPossible = nbPossible + 1
 			str = urlparse(s)
 			if str.fragment != '' :
 				str = str.fragment
-				test_HumanReadable(str)
+				if test_HumanReadable(str) :
+					points = points + 1
 			else : 
 				str = str.path
 				str = str.split("/")[-1]
-				test_HumanReadable(str)
+				if test_HumanReadable(str) :
+					points = points + 1
 		if isinstance(p, rdflib.term.URIRef) :
 			nbPossible = nbPossible + 1
 			str = urlparse(p)
 			if str.fragment != '' :
 				str = str.fragment
-				test_HumanReadable(str)
+				if test_HumanReadable(str) :
+					points = points + 1
 			else : 
 				str = str.path
 				str = str.split("/")[-1]
-				test_HumanReadable(str)
+				if test_HumanReadable(str) :
+					points = points + 1
 		if isinstance(o, rdflib.term.URIRef) :
 			nbPossible = nbPossible + 1
 			str = urlparse(o)
 			if str.fragment != '' :
 				str = str.fragment
-				test_HumanReadable(str)
+				if test_HumanReadable(str) :
+					points = points + 1
 			else : 
 				str = str.path
 				str = str.split("/")[-1]
-				test_HumanReadable(str)
+				if test_HumanReadable(str) :
+					points = points + 1
 	if nbPossible == 0 :
 		return 1
 	else :
-		return points/nbPossible
+		return 0-((nbPossible - points)/nbPossible)
 		
-def test_HumanReadable(str) :
-	print(str)
-	str2 = re.match('[A-Z][A-Z][A-Z]', str)
-	if str2 is not None :
-		return str2
-	str2 = re.match('[0-9]+[A-Za-z0-9\-\_]+$', str)
-	print(str2)
-	return str2
+def test_HumanReadable(str) : #------------------------ Utilisé au dessus --------------------------------------------------
+	regexp = re.compile(r'[A-Z][A-Z][A-Z]') #Si on a une suite de 3 majuscules
+	if regexp.search(str):
+		return False
+	regexp = re.compile(r'[0-9]+[A-Za-z-_.]+[0-9]*$') #Si on a un string contenant un chiffre au milieu d'autre caractères
+	if regexp.search(str):
+		return False
+	regexp = re.compile(r'[$+!*\'()]') #Si on a un caractère particulier qui ne devrait pas exister
+	if regexp.search(str):
+		return False
+	if len(str) < 3 : #si la taille est inférieure à 3
+		return False
+	if re.subn('[0-9]', '', str)[1] > 8 : #Si on a plus de 8 chiffres (date)
+		return False
+	return True
 
 def Conciseness_duplicatedRules() :  #Oui, passé des heures dessus pour au final avoir ça... Revoir le score --------------------------------------------------
 	return len(liste_map) - len(g_map)
-	
 	
 def Clarity_humanDesc() : #Revoir le return, opérationnel sinon -------------------------------------------------
 	nbPossible = 0
@@ -318,12 +345,20 @@ def Interlinking_owlSameAs() : #Corrigé, devrait être opérationnel. Ici, on r
 		return 0
 	else :
 		return points/nbPossible
-		
 	
-def Interlinking_externalURIs() :
-	return 0
+def Interlinking_externalURIs() : #Revoir le return, sinon complet
+	points = 0
+	nbPossible = 0 
+	for s, _, o in g_map.triples((None, None, None)) :
+		if isinstance(s, rdflib.term.URIRef) and isinstance(o, rdflib.term.URIRef) : #Donc on a un lien entre deux URIs
+			nbPossible = nbPossible + 1
+			if not (s, None, o) in g_onto : #Et si ça n'existe pas dans notre ontologie, alors on a créé un nouveau lien
+				points = points + 1
+	if nbPossible == 0 :
+		return 0
+	else :
+		return points/nbPossible
 	
-
 def Interlinking_localLinks() : #Retrourne en quelque sorte le nombre d'îlots. Opérationnel --------------------------------------------------------------------
 	liste_value = []
 	i = 1
@@ -367,7 +402,6 @@ def Interlinking_localLinks() : #Retrourne en quelque sorte le nombre d'îlots. 
 			nb.append(elt[1])
 	return len(nb)
 	
-
 def Interlinking_localLinkNewCalc(liste, ref, value) : #Utilisé pour la méthode précédente uniquement
 	for _, _, o in g_link.triples((ref, None, None)) :
 		for elt in liste :
@@ -385,8 +419,31 @@ def Interlinking_localLinkNewCalc(liste, ref, value) : #Utilisé pour la méthod
 	
 def Interlinking_existingVocab() :
 	return 0
-	#ça... je cé pa
+	#ça... comment faire ?
 
+def Coverage_Vertical() : #Fait ------------------------------------------------------
+	set_dollarVal = set()
+	correspondance = 0
+	regexp = re.compile('\(([^)]+)') 
+	for s, _, o in g_map.triples((None, None, None)) :
+		if regexp.search(str(s)) is not None:
+			set_dollarVal.add(re.search('\(([^)]+)', str(s)).group(1))
+		if regexp.search(str(o)) is not None:
+			set_dollarVal.add(re.search('\(([^)]+)', str(o)).group(1))
+	if len(raw_data[0]['fields']) == 0 :
+		return 0
+	else :
+		return (len(raw_data[0]['fields']) - len(set_dollarVal))/len(raw_data[0]['fields'])
+
+def Availability_localLink() : #qu'est-ce qu'un lien local ?
+	return 0
+	
+def Availability_externalLink() : #qu'est-ce qu'un lien externe ?
+	return 0
+	
+def Consistency_datatypeRange() :
+	return 0
+		
 def yamlToTriples(mapping) : #Opérationnel ! ------------------------------------------------------------------------------------
 	liste_map = []
 	for name in mapping["mappings"] :
@@ -416,40 +473,41 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('file1')
 	parser.add_argument('file2')
+	parser.add_argument('file3')
 	args = parser.parse_args()
-
 	#On regarde si les fichiers existent
-	if os.path.exists(args.file1) and os.path.exists(args.file2) :
+	if os.path.exists(args.file1) and os.path.exists(args.file2) and os.path.exists(args.file3):
 		print("Files exist")
 		g_onto = Graph()
 		g_link = Graph()
 		g_map = Graph()
-	#On regarde le type des fichiers
-		if Path(args.file1).suffix == '.rdf' :
-			with open(args.file1) as file:
-				g_link.parse(file)
-				g_onto = g_link
-			if Path(args.file2).suffix == '.yml' : #Penser au JSON pour après !!!
-				with open(args.file2) as file2 :
-					mapping = yaml.load(file2, Loader=yaml.FullLoader)
-					liste_map = yamlToTriples(mapping)
-		elif Path(args.file2).suffix == '.rdf' :
-			with open(args.file) as file:
-				g_link.parse(file)
-				g_onto = g_link
-			if Path(args.file1).suffix == '.yml' : #Penser au JSON pour après !!!
-				with open(args.file2) as file2 :
-					mapping = yaml.load(file2, Loader=yaml.FullLoader)
-					liste_map = yamlToTriples(mapping)
-					
-		for triple in liste_map :
-			g_link.add(triple)
-			g_map.add(triple)
-		#for s, p, o in g_onto.triples((rdflib.term.URIRef('http://schema.org/Person'), rdflib.term.URIRef('http://www.w3.org/2002/07/owl#equivalentClass'), None)) :
-		#		print('---------------------')
-		#		pprint.pprint(p)
-		#		pprint.pprint(o)
-		print(Consistency_subClassesProperties())
 	else : 
 		print('Les fichiers n\'existent pas')
-	#Note : Réduire au max les répétitions avec des fonctions, tt ça. Code plus propre
+		exit()
+	files = []
+	files.append(args.file1)
+	files.append(args.file2)
+	files.append(args.file3)
+	for file in files :
+		if Path(file).suffix == '.rdf' :
+			g_onto.parse(open(file))
+			for s, p, o in g_onto.triples((None, None, None)) :
+				g_link.add((s, p, o))
+		elif Path(file).suffix == '.yml' : #Penser au JSON pour après !!!
+			mapping = yaml.load(open(file), Loader=yaml.FullLoader)
+			liste_map = yamlToTriples(mapping)
+		elif Path(file).suffix == '.json' :
+			raw_data = json.load(open(file))
+			#pprint.pprint(raw_data[0]["fields"])
+		else :
+			print('You should have a .rdf, .yml and a .json')
+			exit()
+
+	for triple in liste_map :
+		g_link.add(triple)
+		g_map.add(triple)
+	#for s, p, o in g_onto.triples((None,None,None)) :
+	#		print('---------------------')
+	#		pprint.pprint(p)
+	#		pprint.pprint(o)
+	print(Interlinking_externalURIs())
