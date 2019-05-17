@@ -318,8 +318,6 @@ def Consistency_domainRange() : #Il est bon de noter ici qu'un mapping avec peu 
 	if nbPossible == 0 :
 		return 0
 	else :
-		print(points)
-		print(nbPossible)
 		return 0-((nbPossible - points)/nbPossible)
 
 def Interlinking_owlSameAs() : #Corrigé, devrait être opérationnel. Ici, on regarde pour chaque URI si cette dernière à un owl:sameAs existant. --------------------------------------
@@ -365,8 +363,6 @@ def Interlinking_localLinks() : #Retrourne en quelque sorte le nombre d'îlots. 
 	val_S = 0
 	val_O = 0
 	for s, _, o in g_map.triples((None, None, None)) :
-		pprint.pprint(s)
-		pprint.pprint(o)
 		index_S = 0
 		index_O = 0
 		parc_S = False
@@ -432,8 +428,8 @@ def Coverage_Vertical() : #Fait ------------------------------------------------
 			set_dollarVal.add(re.search('\(([^)]+)', str(o)).group(1))
 	if len(raw_data[0]['fields']) == 0 :
 		return 0
-	else :
-		return (len(raw_data[0]['fields']) - len(set_dollarVal))/len(raw_data[0]['fields'])
+	else :		
+		return len(set_dollarVal)/len(raw_data[0]['fields'])
 
 def Availability_localLink() : #qu'est-ce qu'un lien local ?
 	return 0
@@ -441,9 +437,54 @@ def Availability_localLink() : #qu'est-ce qu'un lien local ?
 def Availability_externalLink() : #qu'est-ce qu'un lien externe ?
 	return 0
 	
-def Consistency_datatypeRange() :
+def Consistency_datatypeRange() : #Couvrir seulement les cas de nos mappings ! C'est à dire integer vs PositiveInteger, et datetime
 	return 0
 		
+def Facade(liste_poids) :
+	total = 0
+	for i in range(0,18) :
+		liste_poids.append(1/18)
+	points = []
+	points.append(liste_poids[0] * Availability_Error())
+	#print(points[0])
+	points.append(liste_poids[1] * Clarity_humanDesc())
+	#print(points[1])
+	points.append(liste_poids[2] * Clarity_HumanReadableURIs())
+#	print(points[2])
+	points.append(liste_poids[3] * Clarity_longTerm())
+#	print(points[3])
+	points.append(liste_poids[4] * Conciseness_duplicatedRules())
+#	print(points[4])
+	points.append(liste_poids[5] * Conciseness_longURI())
+#	print(points[5])
+	points.append(liste_poids[6] * Consistency_domainRange())
+#	print(points[6])
+	points.append(liste_poids[7] * Consistency_subClassesProperties())
+#	print(points[7])
+	points.append(liste_poids[8] * Consistency_equivalentClassesProperties())
+#	print(points[8])
+	points.append(liste_poids[9] * Consistency_disjointWith())
+#	print(points[9])
+	points.append(liste_poids[10] * Interlinking_owlSameAs())
+#	print(points[10])
+	points.append(liste_poids[11] * Interlinking_externalURIs())
+#	print(points[11])
+	points.append(liste_poids[12] * Interlinking_localLinks())
+#	print(points[12])
+	points.append(liste_poids[13] * Interlinking_existingVocab())
+#	print(points[13])
+	points.append(liste_poids[14] * Availability_externalLink())
+#	print(points[14])
+	points.append(liste_poids[15] * Availability_localLink())
+#	print(points[15])
+	points.append(liste_poids[16] * Consistency_datatypeRange())
+#	print(points[16])
+	points.append(liste_poids[17] * Coverage_Vertical())
+	print(points[17])
+	for i in range(0,17) :
+		total = total + points[i]
+	print(total)
+	
 def yamlToTriples(mapping) : #Opérationnel ! ------------------------------------------------------------------------------------
 	liste_map = []
 	for name in mapping["mappings"] :
@@ -510,4 +551,5 @@ if __name__ == '__main__':
 	#		print('---------------------')
 	#		pprint.pprint(p)
 	#		pprint.pprint(o)
-	print(Interlinking_externalURIs())
+	chose = []
+	Facade(chose)
