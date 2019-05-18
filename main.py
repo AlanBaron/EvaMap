@@ -37,7 +37,7 @@ def Consistency_subClassesProperties() : #Même remarque que la suivante. Foncti
 			if (None, o3, None) in g_map and not isinstance(o3, rdflib.term.BNode) :
 				points = points + 1					
 	if nbPossible == 0 :
-		return 0
+		return 1
 	else :
 		return points/nbPossible
 		
@@ -67,7 +67,7 @@ def Consistency_equivalentClassesProperties() : #Ici on considère que si une cl
 				points = points + 1
 						
 	if nbPossible == 0 :
-		return 0
+		return 1
 	else :
 		return points/nbPossible
 		
@@ -92,9 +92,9 @@ def Consistency_disjointWith() : #Corrigé, devrait fonctionner ----------------
 						points = points + 1
 		
 	if nbPossible == 0 :
-		return 0
+		return 1
 	else :
-		return 0-(points/nbPossible)
+		return 1-points/nbPossible
 	
 def Conciseness_longURI() : #Opérationnel ----------------------------------------------------------------
 	nbPossible = 0
@@ -113,9 +113,9 @@ def Conciseness_longURI() : #Opérationnel -------------------------------------
 			if len(p) >= 80 :
 				points = points + 1
 	if nbPossible == 0:
-		return 0
+		return 1
 	else :
-		return 0-(points/nbPossible)
+		return 1-points/nbPossible
 		
 def Availability_Error() : #Corrigé, opérationelle, et optimisé au mieux --------------------------------------------------------------------------
 	nbPossible = 0
@@ -151,9 +151,9 @@ def Availability_Error() : #Corrigé, opérationelle, et optimisé au mieux ----
 		except:
 			points = points + 1
 	if nbPossible == 0 :
-		return 0
+		return 1
 	else :
-		return 0-(points/nbPossible)
+		return 1-points/nbPossible
 	
 def Clarity_HumanReadableURIs() : #Complet --------------------------------------------------------------------------------
 	nbPossible = 0
@@ -198,7 +198,7 @@ def Clarity_HumanReadableURIs() : #Complet -------------------------------------
 	if nbPossible == 0 :
 		return 1
 	else :
-		return 0-((nbPossible - points)/nbPossible)
+		return 1-((nbTriples*3) - points)/(nbTriples*3)
 		
 def test_HumanReadable(str) : #------------------------ Utilisé au dessus --------------------------------------------------
 	regexp = re.compile(r'[A-Z][A-Z][A-Z]') #Si on a une suite de 3 majuscules
@@ -217,7 +217,7 @@ def test_HumanReadable(str) : #------------------------ Utilisé au dessus -----
 	return True
 
 def Conciseness_duplicatedRules() :  #Oui, passé des heures dessus pour au final avoir ça... Revoir le score --------------------------------------------------
-	return len(liste_map) - len(g_map)
+	return len(liste_map)/len(g_map) 
 	
 def Clarity_humanDesc() : #Revoir le return, opérationnel sinon -------------------------------------------------
 	nbPossible = 0
@@ -239,8 +239,8 @@ def Clarity_humanDesc() : #Revoir le return, opérationnel sinon ---------------
 			passe = True
 		if passe :
 			points = points + 1
-	return points
-
+	return points/(nbTriples*3)
+	
 def Clarity_longTerm() : #Complété, corrigé et fonctionnel. Revoir le return ? -----------------------------------------------------
 	nbPossible = 0
 	points = 0
@@ -262,9 +262,9 @@ def Clarity_longTerm() : #Complété, corrigé et fonctionnel. Revoir le return 
 			except ValueError :
 				pass
 	if nbPossible == 0 :
-		return 0
+		return 1
 	else :
-		return points/nbPossible
+		return points/(nbTriples*3)
 
 def Consistency_domainRange() : #Il est bon de noter ici qu'un mapping avec peu de lien externes peut potentiellement donner une mauvaise note, sans pour autant être mauvais
 #Cas des littéraux avec datatype non pris en compte! A voir si y'a le temps
@@ -316,9 +316,9 @@ def Consistency_domainRange() : #Il est bon de noter ici qu'un mapping avec peu 
 			points = points + 1
 				
 	if nbPossible == 0 :
-		return 0
+		return 1
 	else :
-		return 0-((nbPossible - points)/nbPossible)
+		return 1-((nbPossible) - points)/(nbPossible)
 
 def Interlinking_owlSameAs() : #Corrigé, devrait être opérationnel. Ici, on regarde pour chaque URI si cette dernière à un owl:sameAs existant. --------------------------------------
 	nbPossible = 0 
@@ -340,9 +340,9 @@ def Interlinking_owlSameAs() : #Corrigé, devrait être opérationnel. Ici, on r
 			if s2 != elt :
 				points = points + 1
 	if nbPossible == 0 :
-		return 0
+		return 1
 	else :
-		return points/nbPossible
+		return points/(nbTriples*3)
 	
 def Interlinking_externalURIs() : #Revoir le return, sinon complet
 	points = 0
@@ -353,7 +353,7 @@ def Interlinking_externalURIs() : #Revoir le return, sinon complet
 			if not (s, None, o) in g_onto : #Et si ça n'existe pas dans notre ontologie, alors on a créé un nouveau lien
 				points = points + 1
 	if nbPossible == 0 :
-		return 0
+		return 1
 	else :
 		return points/nbPossible
 	
@@ -427,7 +427,7 @@ def Coverage_Vertical() : #Fait ------------------------------------------------
 		if regexp.search(str(o)) is not None:
 			set_dollarVal.add(re.search('\(([^)]+)', str(o)).group(1))
 	if len(raw_data[0]['fields']) == 0 :
-		return 0
+		return 1
 	else :		
 		return len(set_dollarVal)/len(raw_data[0]['fields'])
 
@@ -438,17 +438,39 @@ def Availability_externalLink() : #qu'est-ce qu'un lien externe ?
 	return 0
 	
 def Consistency_datatypeRange() : #Couvrir seulement les cas de nos mappings ! C'est à dire integer vs PositiveInteger, et datetime
-	return 0
+	points = 0
+	nbPossible = 0
+	boolean = False
+	for _, _, o in g_map.triples((None, None, None)) :
+		if isinstance(o, rdflib.term.Literal) :
+			nbPossible = nbPossible + 1
+			if o.datatype is not None :
+				if o.datatype == rdflib.term.URIRef('http://www.w3.org/2001/XMLSchema#positiveInteger') :
+					string = re.search('\(([^)]+)', str(o)).group(1)
+					for i in range(0, len(raw_data)) :
+						if raw_data[0]['fields'][string] < 1 :
+							boolean = True
+					if boolean :
+						points = points + 1
+						boolean = False
+				if o.datatype == rdflib.term.URIRef('http://www.w3.org/2001/XMLSchema#integer') : #ça devrait être un positiveInteger
+					string = re.search('\(([^)]+)', str(o)).group(1)
+					for i in range(0, len(raw_data)) :
+						if raw_data[0]['fields'][string] < 1 :
+							boolean = True
+					if not boolean :
+						points = points + 1
+						
+	return 1-points/nbPossible
 		
 def Facade(liste_poids) :
 	total = 0
-	for i in range(0,18) :
-		liste_poids.append(1/18)
+	total2 = 0
 	points = []
-	points.append(liste_poids[0] * Availability_Error())
-	#print(points[0])
+	points.append(liste_poids[1] * Availability_Error())
+#	print(points[0])
 	points.append(liste_poids[1] * Clarity_humanDesc())
-	#print(points[1])
+#	print(points[1])
 	points.append(liste_poids[2] * Clarity_HumanReadableURIs())
 #	print(points[2])
 	points.append(liste_poids[3] * Clarity_longTerm())
@@ -480,10 +502,12 @@ def Facade(liste_poids) :
 	points.append(liste_poids[16] * Consistency_datatypeRange())
 #	print(points[16])
 	points.append(liste_poids[17] * Coverage_Vertical())
-	print(points[17])
-	for i in range(0,17) :
+#	print(points[17])
+	
+	for i in range(0,17):
 		total = total + points[i]
-	print(total)
+		total2 = liste_poids[i] + total2
+	print(total/total2)
 	
 def yamlToTriples(mapping) : #Opérationnel ! ------------------------------------------------------------------------------------
 	liste_map = []
@@ -543,13 +567,14 @@ if __name__ == '__main__':
 		else :
 			print('You should have a .rdf, .yml and a .json')
 			exit()
-
+	nbTriples = 0
 	for triple in liste_map :
+		nbTriples = nbTriples + 1
 		g_link.add(triple)
 		g_map.add(triple)
 	#for s, p, o in g_onto.triples((None,None,None)) :
 	#		print('---------------------')
 	#		pprint.pprint(p)
 	#		pprint.pprint(o)
-	chose = []
+	chose = [3, 1, 1, 1, 3, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 3]
 	Facade(chose)
