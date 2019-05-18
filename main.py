@@ -217,7 +217,7 @@ def test_HumanReadable(str) : #------------------------ Utilisé au dessus -----
 	return True
 
 def Conciseness_duplicatedRules() :  #Oui, passé des heures dessus pour au final avoir ça... Revoir le score --------------------------------------------------
-	return len(liste_map)/len(g_map) 
+	return len(g_map)/len(liste_map)
 	
 def Clarity_humanDesc() : #Revoir le return, opérationnel sinon -------------------------------------------------
 	nbPossible = 0
@@ -460,51 +460,52 @@ def Consistency_datatypeRange() : #Couvrir seulement les cas de nos mappings ! C
 							boolean = True
 					if not boolean :
 						points = points + 1
-						
+			else : #si y'a pas de type c'est moins bien
+				points = points + 1
 	return 1-points/nbPossible
 		
 def Facade(liste_poids) :
 	total = 0
 	total2 = 0
 	points = []
-	points.append(liste_poids[1] * Availability_Error())
-#	print(points[0])
+	points.append(liste_poids[0] * Availability_Error())
+	print(points[0])
 	points.append(liste_poids[1] * Clarity_humanDesc())
-#	print(points[1])
+	print(points[1])
 	points.append(liste_poids[2] * Clarity_HumanReadableURIs())
-#	print(points[2])
+	print(points[2])
 	points.append(liste_poids[3] * Clarity_longTerm())
-#	print(points[3])
+	print(points[3])
 	points.append(liste_poids[4] * Conciseness_duplicatedRules())
-#	print(points[4])
+	print(points[4])
 	points.append(liste_poids[5] * Conciseness_longURI())
-#	print(points[5])
+	print(points[5])
 	points.append(liste_poids[6] * Consistency_domainRange())
-#	print(points[6])
+	print(points[6])
 	points.append(liste_poids[7] * Consistency_subClassesProperties())
-#	print(points[7])
+	print(points[7])
 	points.append(liste_poids[8] * Consistency_equivalentClassesProperties())
-#	print(points[8])
+	print(points[8])
 	points.append(liste_poids[9] * Consistency_disjointWith())
-#	print(points[9])
+	print(points[9])
 	points.append(liste_poids[10] * Interlinking_owlSameAs())
-#	print(points[10])
+	print(points[10])
 	points.append(liste_poids[11] * Interlinking_externalURIs())
-#	print(points[11])
+	print(points[11])
 	points.append(liste_poids[12] * Interlinking_localLinks())
-#	print(points[12])
-	points.append(liste_poids[13] * Interlinking_existingVocab())
+	print(points[12])
+#	points.append(liste_poids[13] * Interlinking_existingVocab())
 #	print(points[13])
-	points.append(liste_poids[14] * Availability_externalLink())
+#	points.append(liste_poids[14] * Availability_externalLink())
 #	print(points[14])
-	points.append(liste_poids[15] * Availability_localLink())
+#	points.append(liste_poids[15] * Availability_localLink())
 #	print(points[15])
-	points.append(liste_poids[16] * Consistency_datatypeRange())
-#	print(points[16])
-	points.append(liste_poids[17] * Coverage_Vertical())
-#	print(points[17])
+	points.append(liste_poids[13] * Consistency_datatypeRange())
+	print(points[13])
+	points.append(liste_poids[14] * Coverage_Vertical())
+	print(points[14])
 	
-	for i in range(0,17):
+	for i in range(0,14):
 		total = total + points[i]
 		total2 = liste_poids[i] + total2
 	print(total/total2)
@@ -576,5 +577,5 @@ if __name__ == '__main__':
 	#		print('---------------------')
 	#		pprint.pprint(p)
 	#		pprint.pprint(o)
-	chose = [3, 1, 1, 1, 3, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 3]
+	chose = [4, 1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 3]
 	Facade(chose)
