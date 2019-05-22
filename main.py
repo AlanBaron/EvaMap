@@ -396,7 +396,7 @@ def Interlinking_localLinks() : #Retrourne en quelque sorte le nombre d'îlots. 
 	for elt in liste_value :
 		if elt[1] not in nb :
 			nb.append(elt[1])
-	return len(nb)
+	return 1/len(nb)
 	
 def Interlinking_localLinkNewCalc(liste, ref, value) : #Utilisé pour la méthode précédente uniquement
 	for _, _, o in g_link.triples((ref, None, None)) :
@@ -469,31 +469,31 @@ def Facade(liste_poids) :
 	total2 = 0
 	points = []
 	points.append(liste_poids[0] * Availability_Error())
-#	print(points[0])
+	print(points[0])
 	points.append(liste_poids[1] * Clarity_humanDesc())
-#	print(points[1])
+	print(points[1])
 	points.append(liste_poids[2] * Clarity_HumanReadableURIs())
-#	print(points[2])
+	print(points[2])
 	points.append(liste_poids[3] * Clarity_longTerm())
-#	print(points[3])
+	print(points[3])
 	points.append(liste_poids[4] * Conciseness_duplicatedRules())
-#	print(points[4])
+	print(points[4])
 	points.append(liste_poids[5] * Conciseness_longURI())
-#	print(points[5])
+	print(points[5])
 	points.append(liste_poids[6] * Consistency_domainRange())
-#	print(points[6])
+	print(points[6])
 	points.append(liste_poids[7] * Consistency_subClassesProperties())
-#	print(points[7])
+	print(points[7])
 	points.append(liste_poids[8] * Consistency_equivalentClassesProperties())
-#	print(points[8])
+	print(points[8])
 	points.append(liste_poids[9] * Consistency_disjointWith())
-#	print(points[9])
+	print(points[9])
 	points.append(liste_poids[10] * Interlinking_owlSameAs())
-#	print(points[10])
+	print(points[10])
 	points.append(liste_poids[11] * Interlinking_externalURIs())
-#	print(points[11])
+	print(points[11])
 	points.append(liste_poids[12] * Interlinking_localLinks())
-#	print(points[12])
+	print(points[12])
 #	points.append(liste_poids[13] * Interlinking_existingVocab())
 #	print(points[13])
 #	points.append(liste_poids[14] * Availability_externalLink())
@@ -501,9 +501,9 @@ def Facade(liste_poids) :
 #	points.append(liste_poids[15] * Availability_localLink())
 #	print(points[15])
 	points.append(liste_poids[13] * Consistency_datatypeRange())
-#	print(points[13])
+	print(points[13])
 	points.append(liste_poids[14] * Coverage_Vertical())
-#	print(points[14])
+	print(points[14])
 	
 	for i in range(0,14):
 		total = total + points[i]
