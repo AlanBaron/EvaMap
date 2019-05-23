@@ -172,7 +172,8 @@ def Clarity_HumanReadableURIs() : #Complet -------------------------------------
 				if test_HumanReadable(str) :
 					points = points + 1
 			if str.startswith('$') :
-				nbPossible = nbPossible - 1		
+				nbPossible = nbPossible - 1	
+				points = points - 1
 		if isinstance(p, rdflib.term.URIRef) and p != rdflib.term.URIRef('a'):
 			nbPossible = nbPossible + 1
 			str = urlparse(p)
@@ -187,6 +188,7 @@ def Clarity_HumanReadableURIs() : #Complet -------------------------------------
 					points = points + 1
 			if str.startswith('$') :
 				nbPossible = nbPossible - 1
+				points = points - 1
 		if isinstance(o, rdflib.term.URIRef) :
 			nbPossible = nbPossible + 1
 			str = urlparse(o)
@@ -201,9 +203,11 @@ def Clarity_HumanReadableURIs() : #Complet -------------------------------------
 					points = points + 1
 			if str.startswith('$') :
 				nbPossible = nbPossible - 1
+				points = points - 1
 	if nbPossible == 0 :
 		return 1
 	else :
+		print('A ', points, 'B ', nbPossible)
 		return 1-((nbPossible) - points)/(nbPossible)
 		
 def test_HumanReadable(str) : #------------------------ Utilisé au dessus --------------------------------------------------
@@ -220,7 +224,7 @@ def test_HumanReadable(str) : #------------------------ Utilisé au dessus -----
 		if len(str) < 3 : #si la taille est inférieure à 3
 			return False
 		if re.subn('[0-9]', '', str)[1] > 8 : #Si on a plus de 8 chiffres (date)*
-			return False
+			return False			
 	return True
 
 def Conciseness_duplicatedRules() :  #Oui, passé des heures dessus pour au final avoir ça... Revoir le score --------------------------------------------------
