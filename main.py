@@ -102,7 +102,7 @@ def Conciseness_longURI() : #Opérationnel -------------------------------------
 	for s, p, o in g_map.triples((None, None, None)) :
 		if isinstance(s, rdflib.term.URIRef) :
 			nbPossible = nbPossible + 1
-			if len(p) >= 80 :
+			if len(s) >= 80 :
 				points = points + 1
 		if isinstance(p, rdflib.term.URIRef) :
 			nbPossible = nbPossible + 1
@@ -110,7 +110,7 @@ def Conciseness_longURI() : #Opérationnel -------------------------------------
 				points = points + 1
 		if isinstance(o, rdflib.term.URIRef) :
 			nbPossible = nbPossible + 1
-			if len(p) >= 80 :
+			if len(o) >= 80 :
 				points = points + 1
 	if nbPossible == 0:
 		return 1
@@ -171,7 +171,9 @@ def Clarity_HumanReadableURIs() : #Complet -------------------------------------
 				str = str.split("/")[-1]
 				if test_HumanReadable(str) :
 					points = points + 1
-		if isinstance(p, rdflib.term.URIRef) :
+			if str.startswith('$') :
+				nbPossible = nbPossible - 1		
+		if isinstance(p, rdflib.term.URIRef) and p != rdflib.term.URIRef('a'):
 			nbPossible = nbPossible + 1
 			str = urlparse(p)
 			if str.fragment != '' :
@@ -183,6 +185,8 @@ def Clarity_HumanReadableURIs() : #Complet -------------------------------------
 				str = str.split("/")[-1]
 				if test_HumanReadable(str) :
 					points = points + 1
+			if str.startswith('$') :
+				nbPossible = nbPossible - 1
 		if isinstance(o, rdflib.term.URIRef) :
 			nbPossible = nbPossible + 1
 			str = urlparse(o)
@@ -195,25 +199,28 @@ def Clarity_HumanReadableURIs() : #Complet -------------------------------------
 				str = str.split("/")[-1]
 				if test_HumanReadable(str) :
 					points = points + 1
+			if str.startswith('$') :
+				nbPossible = nbPossible - 1
 	if nbPossible == 0 :
 		return 1
 	else :
-		return 1-((nbTriples*3) - points)/(nbTriples*3)
+		return 1-((nbPossible) - points)/(nbPossible)
 		
 def test_HumanReadable(str) : #------------------------ Utilisé au dessus --------------------------------------------------
-	regexp = re.compile(r'[A-Z][A-Z][A-Z]') #Si on a une suite de 3 majuscules
-	if regexp.search(str):
-		return False
-	regexp = re.compile(r'[0-9]+[A-Za-z-_.]+[0-9]*$') #Si on a un string contenant un chiffre au milieu d'autre caractères
-	if regexp.search(str):
-		return False
-	regexp = re.compile(r'[$+!*\'()]') #Si on a un caractère particulier qui ne devrait pas exister
-	if regexp.search(str):
-		return False
-	if len(str) < 3 : #si la taille est inférieure à 3
-		return False
-	if re.subn('[0-9]', '', str)[1] > 8 : #Si on a plus de 8 chiffres (date)
-		return False
+	if not str.startswith('$') :
+		regexp = re.compile(r'[A-Z][A-Z][A-Z]') #Si on a une suite de 3 majuscules
+		if regexp.search(str):
+			return False
+		regexp = re.compile(r'[0-9]+[A-Za-z-_.]+[0-9]*$') #Si on a un string contenant un chiffre au milieu d'autre caractères
+		if regexp.search(str):
+			return False
+		regexp = re.compile(r'[$+!*\'()]') #Si on a un caractère particulier qui ne devrait pas exister
+		if regexp.search(str):
+			return False
+		if len(str) < 3 : #si la taille est inférieure à 3
+			return False
+		if re.subn('[0-9]', '', str)[1] > 8 : #Si on a plus de 8 chiffres (date)*
+			return False
 	return True
 
 def Conciseness_duplicatedRules() :  #Oui, passé des heures dessus pour au final avoir ça... Revoir le score --------------------------------------------------
@@ -239,7 +246,7 @@ def Clarity_humanDesc() : #Revoir le return, opérationnel sinon ---------------
 			passe = True
 		if passe :
 			points = points + 1
-	return points/(nbTriples*3)
+	return points/(nbPossible)
 	
 def Clarity_longTerm() : #Complété, corrigé et fonctionnel. Revoir le return ? -----------------------------------------------------
 	nbPossible = 0
@@ -264,7 +271,7 @@ def Clarity_longTerm() : #Complété, corrigé et fonctionnel. Revoir le return 
 	if nbPossible == 0 :
 		return 1
 	else :
-		return points/(nbTriples*3)
+		return points/(nbPossible)
 
 def Consistency_domainRange() : #Il est bon de noter ici qu'un mapping avec peu de lien externes peut potentiellement donner une mauvaise note, sans pour autant être mauvais
 #Cas des littéraux avec datatype non pris en compte! A voir si y'a le temps
@@ -333,16 +340,12 @@ def Interlinking_owlSameAs() : #Corrigé, devrait être opérationnel. Ici, on r
 			set_URIs.add(p)
 	for elt in set_URIs :
 		nbPossible = nbPossible + 1
-		for _, _, o2 in g_link.triples((elt, rdflib.term.URIRef('http://www.w3.org/2002/07/owl#sameAs'), None)) :
-			if o2 != elt :
-				points = points + 1
-		for s2, _, _ in g_link.triples((None, rdflib.term.URIRef('http://www.w3.org/2002/07/owl#sameAs'), elt)) :
-			if s2 != elt :
-				points = points + 1
+	for _, _,_  in g_map.triples((None, rdflib.term.URIRef('http://www.w3.org/2002/07/owl#sameAs'), None)) :
+		points = points + 1
 	if nbPossible == 0 :
-		return 1
+		return 0
 	else :
-		return points/(nbTriples*3)
+		return points/(nbPossible)
 	
 def Interlinking_externalURIs() : #Revoir le return, sinon complet
 	points = 0
@@ -573,9 +576,11 @@ if __name__ == '__main__':
 		nbTriples = nbTriples + 1
 		g_link.add(triple)
 		g_map.add(triple)
-	#for s, p, o in g_onto.triples((None,None,None)) :
+	#for s, p, o in g_onto.triples((None,rdflib.term.URIRef('http://www.w3.org/2002/07/owl#equivalentClass'),None)) :
 	#		print('---------------------')
-	#		pprint.pprint(p)
+	#		pprint.pprint(s)
 	#		pprint.pprint(o)
 	chose = [4, 1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 3]
+	for _, _,_  in g_map.triples((None, rdflib.term.URIRef('http://www.w3.org/2002/07/owl#sameAs'), None)) :
+		print('lol')
 	Facade(chose)
