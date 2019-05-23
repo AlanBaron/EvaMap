@@ -584,6 +584,4 @@ if __name__ == '__main__':
 	#		pprint.pprint(s)
 	#		pprint.pprint(o)
 	chose = [4, 1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 3]
-	for _, _,_  in g_map.triples((None, rdflib.term.URIRef('http://www.w3.org/2002/07/owl#sameAs'), None)) :
-		print('lol')
 	Facade(chose)
