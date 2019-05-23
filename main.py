@@ -207,7 +207,6 @@ def Clarity_HumanReadableURIs() : #Complet -------------------------------------
 	if nbPossible == 0 :
 		return 1
 	else :
-		print('A ', points, 'B ', nbPossible)
 		return 1-((nbPossible) - points)/(nbPossible)
 		
 def test_HumanReadable(str) : #------------------------ Utilisé au dessus --------------------------------------------------
